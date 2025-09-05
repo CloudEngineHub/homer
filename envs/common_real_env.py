@@ -1,5 +1,5 @@
 from constants import BASE_RPC_HOST, BASE_RPC_PORT, ARM_RPC_HOST, ARM_RPC_PORT, RPC_AUTHKEY
-from constants import BASE_CAMERA_SERIAL, POLICY_CONTROL_PERIOD
+from constants import POLICY_CONTROL_PERIOD
 import time
 from envs.utils.cameras import KinovaCamera, LogitechCamera, RealSenseCamera
 from envs.utils.arm_server import ArmManager
