@@ -30,9 +30,8 @@ import pdb
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "salient_auto"))
-from molmo_wrapper import MolmoWrapper
-molmo = MolmoWrapper(headless=False)
+from pointing_utils.gemini_wrapper import GeminiWrapper
+gemini = GeminiWrapper("YOUR API KEY")
 
 def eval_waypoint(
     policy: WaypointTransformer,
@@ -88,13 +87,12 @@ def eval_waypoint(
             os.makedirs("salient_auto", exist_ok=True)  # ensure directory exists
             image_path = "salient_auto/image.jpg"
             image.save(image_path)
-            coords = molmo.point_to_object("salient_auto/image.jpg", prompt=item)
+            coords = gemini.point_to_object("salient_auto/image.jpg", prompt=item)
             # pdb.set_trace()
             print("COORDS: ", coords)
             # Parse 2D coordinates
-            h, w = rgb_image.shape[:2]
-            x_px = int(float(coords["cx"].strip('%')) / 100 * w)
-            y_px = int(float(coords["cy"].strip('%')) / 100 * h)
+            x_px = int(coords["cx"])
+            y_px = int(coords["cy"])
 
             # Get depth at that point
             depth = depth_image[y_px, x_px]
@@ -290,4 +288,3 @@ if __name__ == "__main__":
     ## NOTE: For headless eval
     # xvfb-run -s "-screen 0 1920x1080x24" python scripts/eval_waypoint.py ... --headless
     main()
-    molmo.kill_molmo()
