@@ -35,6 +35,7 @@ source set_env.sh
 ## Training
 
 ### 1. Download Datasets
+tar --use-compress-program=unzstd -xvf data.tar.zst
 
 ### 2. Training
 
