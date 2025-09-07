@@ -351,8 +351,6 @@ if __name__ == '__main__':
     from envs.utils.camera_utils import pcl_from_obs
     from common_utils import Stopwatch
     import cv2 as cv
-    from constants import BASE_CAMERA_SERIAL
-    #base_camera = LogitechCamera(BASE_CAMERA_SERIAL)
     base1_camera = RealSenseCamera("247122072471", use_depth=1)
     base2_camera = RealSenseCamera("247122073666", use_depth=1)
     wrist_camera = KinovaCamera()

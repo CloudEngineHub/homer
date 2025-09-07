@@ -84,11 +84,7 @@ def eval_waypoint(
 
             # Save image
             image = Image.fromarray(rgb_image)
-            os.makedirs("salient_auto", exist_ok=True)  # ensure directory exists
-            image_path = "salient_auto/image.jpg"
-            image.save(image_path)
-            coords = gemini.point_to_object("salient_auto/image.jpg", prompt=item)
-            # pdb.set_trace()
+            coords = gemini.point_to_object(image, prompt=item)
             print("COORDS: ", coords)
             # Parse 2D coordinates
             x_px = int(coords["cx"])
@@ -110,7 +106,7 @@ def eval_waypoint(
             pt_world = pt_world[:3]
             target_xyz = pt_world
         
-        visualize_salient = False
+        visualize_salient = True
         if visualize_salient:
             pcd = o3d.geometry.PointCloud()
             points, colors = pcl_from_obs(obs, env.cfg)
