@@ -339,7 +339,6 @@ class PointCloudDatasetConfig:
     aug_translate: int = 0
     aug_clusters: int = 0
     aug_rotate: float = 0
-    aug_clusters: int = 1
 
     def __post_init__(self):
         PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
