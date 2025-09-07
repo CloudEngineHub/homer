@@ -110,5 +110,6 @@ if __name__ == "__main__":
         env_cfg = pyrallis.load(RealEnvConfig, open(os.path.join(data_dir, "env_cfg.yaml"), "r"))
 
     for fn in sorted(os.listdir(data_dir)):
+        print(fn)
         if 'pkl' in fn:
             label_salient_points(os.path.join(data_dir, fn), env_cfg)
