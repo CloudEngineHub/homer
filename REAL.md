@@ -154,10 +154,12 @@ These are the only processes that need to be run on the NUC, and all subsequent 
 
 ---
 
-### 4. Camera Setup (Calibration)
+### 4. One-Time Camera Setup (Calibration)
 
 
-To enable accurate multi-view point clouds as in our setup, you must calibrate the RealSense cameras mounted on the robot base.
+To enable accurate multi-view point clouds as in our setup, you must do a one-time calibration procedure to get the extrinsics of the RealSense cameras mounted on the robot base.
+
+NOTE: If you move the camera mounts at any point, you will need to re-calibrate.
 
 #### Step-by-Step Instructions
 
