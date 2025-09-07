@@ -7,6 +7,8 @@ import pyrallis
 import signal
 import sys
 import threading
+from PIL import Image
+import open3d as o3d
 
 from envs.common_real_env_cfg import RealEnvConfig
 from teleop.policies import TeleopPolicy
@@ -21,10 +23,13 @@ from common_utils.eval_utils import (
     check_for_interrupt,
 )
 
-from envs.utils.camera_utils import pcl_from_obs
+from envs.utils.camera_utils import pcl_from_obs, deproject_pixel_to_3d
 from interactive_scripts.dataset_recorder import ActMode
-from scripts.train_waypoint import load_waypoint
+from scripts.train_waypoint_cond import load_waypoint
 from scripts.train_dense import load_model
+
+from pointing_utils.gemini_wrapper import GeminiWrapper
+#gemini = GeminiWrapper("YOUR API KEY")
 
 # Global vars
 env = None
@@ -155,10 +160,51 @@ def run_waypoint_mode(env, waypoint_policy, num_pass, recorder, curr_mode):
         points, colors = pcl_from_obs(obs, env.cfg)
         proprio = np.hstack((obs["arm_pos"], obs["arm_quat"], obs["gripper_pos"], obs["base_pose"]))
 
+        ### NEW
+        #item = "the center of the light blue elephant"
+        #item = "the center of the tan kangaroo"
+        #item = "the center of the light blue jeans"
+        #item = "the center of the brown bear"
+        #item = "the center of the white jean jacket"
+        #item = "the center of the canada bear"
+        #item = "the center of the snowman"
+        item = "the center of the red bear"
+
+        rgb_image = obs["base2_image"]
+
+        image = Image.fromarray(rgb_image)
+        coords = gemini.point_to_object(image, prompt=item)
+        # Parse 2D coordinates
+        x_px = int(coords["cx"])
+        y_px = int(coords["cy"])
+        gemini_metadata = {"px": [x_px, y_px], "obs": obs, "prompt": item}
+
+        target_xyz = deproject_pixel_to_3d(obs, (x_px, y_px), "base2", env.cfg)
+
+        visualize_salient = False
+        if visualize_salient:
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(points)
+            pcd.colors = o3d.utility.Vector3dVector(colors)
+            sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.02)
+            sphere.paint_uniform_color([1, 0, 0])  # red
+            sphere.translate(target_xyz)
+            o3d.visualization.draw_geometries([pcd, sphere])
+
+        radius = 0.1
+        distances = np.linalg.norm(points - target_xyz[None], axis=1)
+        click_probs = np.clip((radius - distances), 0, None)
+        if click_probs.max() > 0:
+            click_probs /= click_probs.max()
+        else:
+            click_probs[:] = 1.0 / len(click_probs)
+        ###
+
         with torch.no_grad():
             _, pos_cmd, rot_cmd, gripper_cmd, next_mode = waypoint_policy.inference(
                 torch.from_numpy(points).float(),
                 torch.from_numpy(colors).float(),
+                torch.from_numpy(click_probs).float(),
                 torch.from_numpy(proprio).float(),
                 num_pass=num_pass,
             )
@@ -172,11 +218,11 @@ def run_waypoint_mode(env, waypoint_policy, num_pass, recorder, curr_mode):
             curr_mode = ActMode.BaseWaypoint.value
 
         if curr_mode == ActMode.ArmWaypoint.value:
+            # First, move the arm a little bit out before any other actions to avoid hitting the lower base camera
             if quat_cmd[3] < 0:
                 np.negative(quat_cmd, out=quat_cmd)
 
             if not arm_moved:
-                # Move the arm a little bit out before any other actions to avoid hitting the lower base camera
                 arm_moved = True
 
                 if env.cfg.wbc:
@@ -198,9 +244,9 @@ def run_waypoint_mode(env, waypoint_policy, num_pass, recorder, curr_mode):
         curr_mode = next_mode
 
         if interrupt:
-            return ActMode.Terminate.value, obs
+            return ActMode.Terminate.value, obs, None
 
-    return curr_mode, obs
+    return curr_mode, obs, gemini_metadata
 
 def eval_hybrid(
     waypoint_policy,
@@ -226,15 +272,19 @@ def eval_hybrid(
 
     mode = ActMode.ArmWaypoint.value if env.cfg.wbc else ActMode.BaseWaypoint.value
     obs = env.get_obs()
+    gemini_metadata = None
 
     while mode != ActMode.Terminate.value:
         if mode in [ActMode.ArmWaypoint.value, ActMode.BaseWaypoint.value]:
-            mode, obs = run_waypoint_mode(env, waypoint_policy, num_pass, recorder, curr_mode=mode)
+            mode, obs, gemini_metadata = run_waypoint_mode(env, waypoint_policy, num_pass, recorder, curr_mode=mode)
+            print("Switch to mode", mode)
         elif mode == ActMode.Dense.value:
             mode, obs = run_dense_mode(env, dense_policy, dense_dataset, recorder, obs)
 
     if recorder and not (input('Save?') in ['n', 'N']):
         recorder.save(f"{episode_idx}", fps=10)
+        if gemini_metadata is not None:
+            np.savez(f"rollouts/gemini_metadata_{episode_idx}.npz", gemini_metadata)
         return True
 
     return False
@@ -307,17 +357,4 @@ if __name__ == "__main__":
                 print(f"[Error] Cleanup failed in finally block: {e}")
 
     ### Example Usage
-    # python scripts/eval_hybrid_real.py -w exps/waypoint/pillow_base_arm/latest.pt -d exps/dense/pillow_base_arm_delta_allcams/latest.pt --num_episode 10 -e envs/cfgs/real_base_arm.yaml
-    ###
-
-    ### Example Usage
-    # python scripts/eval_hybrid_real.py -w exps/waypoint/pillow_wbc/latest.pt -d exps/dense/pillow_wbc_delta_allcams/latest.pt --num_episode 10 -e envs/cfgs/real_wbc.yaml
-
-    # python scripts/eval_hybrid_real.py -w exps/waypoint/remote_base_arm/latest.pt -d exps/dense/remote_base_arm_delta_allcams/latest.pt --num_episode 10 -e envs/cfgs/real_base_arm.yaml
-
-    # python scripts/eval_hybrid_real.py -w exps/waypoint/remote_wbc/latest.pt -d exps/dense/remote_wbc_delta_allcams/latest.pt --num_episode 10 -e envs/cfgs/real_wbc.yaml
-
-    # python scripts/eval_hybrid_real.py -w exps/waypoint/wiping_wbc/latest.pt -d exps/dense/wiping_wbc_delta_allcams/latest.pt --num_episode 10 -e envs/cfgs/real_wbc.yaml
-    # python scripts/eval_hybrid_real.py -w exps/waypoint/wiping_wbc/latest.pt -d exps/dense/wiping_base_arm_delta_allcams/latest.pt --num_episode 20 -e envs/cfgs/real_base_arm.yaml
-    ### 
-
+    # python scripts/eval_hybrid_cond_real.py -w exps/waypoint/icra_stuffedanimals_wbc_cond_nocolor/latest.pt -d exps/dense/icra_stuffedanimals_wbc_delta_allcams/latest.pt --num_episode 1 -e envs/cfgs/real_wbc.yaml

@@ -81,4 +81,3 @@ class GeminiWrapper:
             print(f"Success! Circle coordinates: cx = {cx}, cy = {cy}")
 
         return {"cx": cx, "cy": cy}
-

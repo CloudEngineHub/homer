@@ -31,6 +31,14 @@ end-effector pose.
 
 def collect_data_for_camera(env, cam_name, N=15):
     intrinsics = env.get_intrinsics(cam_name)
+
+    ### First, move the arm a bit "out" to avoid accidentally bumping the lower camera
+    obs = env.get_state_obs()
+    pre_calib_pos = [0.4, 0.0, 0.2]
+    pre_calib_quat = obs["arm_quat"]
+    reached, err, interrupt = env.move_to_arm_waypoint(pre_calib_pos, pre_calib_quat, 0.0)
+    ###
+
     if cam_name == 'base2':
         reference_pos = np.array([0.45, 0.0, 0.3])
     else:
@@ -44,6 +52,7 @@ def collect_data_for_camera(env, cam_name, N=15):
     euler_offsets = np.random.uniform(low=-0.1, high=0.1, size=(N, 3))
 
     samples = []
+    errors = []
     for i in range(N):
         print(f"[{cam_name}] [{i+1}/{N}] Moving to random pose...")
         target_pos = reference_pos + position_offsets[i]
@@ -53,6 +62,8 @@ def collect_data_for_camera(env, cam_name, N=15):
             np.negative(target_quat, out=target_quat)
 
         reached, err, _ = env.move_to_arm_waypoint(target_pos, target_quat, target_gripper_pos=0.0)
+        errors.append(err)
+
         time.sleep(0.3)
         print(reached, err)
         obs = env.get_obs()
@@ -65,6 +76,8 @@ def collect_data_for_camera(env, cam_name, N=15):
         }
         samples.append(sample)
 
+
+    print("Error", np.mean(errors))
     return intrinsics, samples
 
 if __name__ == "__main__":

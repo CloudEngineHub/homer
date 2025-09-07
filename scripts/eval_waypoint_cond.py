@@ -69,10 +69,6 @@ def eval_waypoint(
             break
 
         points, colors = pcl_from_obs(obs, env.cfg)
-
-        point_cloud = o3d.geometry.PointCloud()
-        point_cloud.points = o3d.utility.Vector3dVector(points)
-        point_cloud.colors = o3d.utility.Vector3dVector(colors)
         proprio = obs["proprio"]
 
         if target_xyz is None:

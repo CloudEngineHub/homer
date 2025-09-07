@@ -31,6 +31,7 @@ notebook==7.1.1
 matplotlib==3.8.4
 
 # Robotics
+qpsolvers[quadprog]
 mujoco==3.2.4
 pin==2.7.0
 ruckig==0.12.2
@@ -44,3 +45,6 @@ redis==5.0.6
 # Mobile base
 phoenix6==24.3.0
 pygame==2.5.2
+
+# Foundation Models
+google-genai

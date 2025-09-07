@@ -326,7 +326,7 @@ class CommonRealEnv:
     def move_to_arm_waypoint(self, target_arm_pos, target_arm_quat, target_gripper_pos, step_size=0.065, threshold_pos=0.01, threshold_quat=0.01, phone_interventions=False, recorder=None):
         """
         Moves the robot arm towards a target position and orientation using interpolation.
-    
+
         Args:
             target_arm_pos (array-like): [x, y, z] target for the arm end-effector.
             target_arm_quat (array-like): [x, y, z, w] target quaternion for arm orientation.
@@ -334,7 +334,7 @@ class CommonRealEnv:
             step_size (float): Maximum step size per iteration.
             threshold_pos (float): Position error threshold for stopping.
             threshold_quat (float): Quaternion error threshold for stopping.
-    
+
         Returns:
             bool: True if the target is reached.
         """
@@ -344,7 +344,7 @@ class CommonRealEnv:
         # Ensure consistent quaternion sign
         if target_arm_quat[3] < 0:
             np.negative(target_arm_quat, out=target_arm_quat)
-    
+
         reached = False
         pos_error_norm = np.inf
         MAX_STEP = 25
@@ -367,11 +367,11 @@ class CommonRealEnv:
                     break
 
             curr_arm_pos, curr_arm_quat, curr_base_pose = obs["arm_pos"], obs["arm_quat"], obs["base_pose"]
-    
+
             # Compute position error
             pos_error = target_arm_pos - curr_arm_pos
             pos_error_norm = np.linalg.norm(pos_error)
-    
+
             # Compute quaternion error
             quat_error = 1 - abs(np.dot(curr_arm_quat, target_arm_quat))
 
@@ -387,14 +387,14 @@ class CommonRealEnv:
             # Compute interpolated position step
             step_vec = step_size * pos_error / (pos_error_norm + 1e-6)  # Avoid division by zero
             next_pos = curr_arm_pos + step_vec if pos_error_norm > step_size else target_arm_pos
-    
+
             # Compute interpolated quaternion step using Slerp
             key_times = [0, 1]  # Define key times
             key_rots = R.from_quat([curr_arm_quat, target_arm_quat])  # Define key rotations
             slerp = Slerp(key_times, key_rots)  # Create Slerp object
             interp_ratio = min(step_size / (pos_error_norm + 1e-6), 1.0)  # Normalize step size
             next_quat = slerp([interp_ratio]).as_quat()[0]  # Interpolated quaternion
-    
+
             # Execute action
             action = {
                 "arm_pos": next_pos, \
@@ -411,7 +411,7 @@ class CommonRealEnv:
         #for _ in range(10):  # Hack: Execute gripper action for 10 timesteps
         #    self.step({"gripper_pos": target_gripper_pos})
         #    time.sleep(POLICY_CONTROL_PERIOD)
-    
+
         return reached, pos_error_norm, interrupt
 
     def move_to_base_waypoint(self, target_base_pose, threshold_pos=0.01, threshold_theta=0.01, phone_interventions=False, recorder=None):
