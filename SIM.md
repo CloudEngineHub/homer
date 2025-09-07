@@ -35,7 +35,18 @@ source set_env.sh
 ## Training
 
 ### 1. Download Datasets
-tar --use-compress-program=unzstd -xvf data.tar.zst
+First, create a directory to store datasets locally
+```bash
+cd /path/to/local/homer 
+mkdir data
+cd data
+```
+Then, to download any of our pre-collected datasets for sim tasks, you can use the following, where `task` is one of [`cube`, `dishwasher`, `cabinet`] and `action_space` is one of [`wbc` (HoMeR) or `base_arm` (baselines)]:
+```bash
+wget --no-check-certificate https://download.cs.stanford.edu/juno/homer/data/dev_<task>_<action_space>.tar.zst
+tar --use-compress-program=unzstd -xvf dev_<task>_<action_space>.tar.zst
+```
+Locally, `homer/data` should now contain datasets such as `homer/data/dev_<cube/dishwasher/cabinet>_<wbc/base_arm>`.
 
 ### 2. Training
 
@@ -111,10 +122,31 @@ We train all models across `l40s` or `a40` GPUs. The dense policies can be train
 
 ## Evaluation
 
-### 1. First, copy the trained checkpoints locally
+### 1. Download checkpoints locally
+If you trained checkpoints using the procedure above, use:
+
 ```bash
-rsync -av /path/to/remote/homer/exps/waypoint/* /path/to/local/homer/exps/waypoint/
+cd /path/to/local/homer 
+mkdir -p exps/dense
+mkdir -p exps/waypoint
+cd exps
+rsync -av /path/to/remote/homer/exps/waypoint/* ./exps/waypoint/
+rsync -av /path/to/remote/homer/exps/dense/* ./exps/dense/
 ```
+To download pre-trained checkpoints, you can use the following commands, where `task` is one of [`cube`, `dishwasher`, `cabinet`] and `action_space` is one of [`wbc` (HoMeR) or `base_arm` (baselines)]:
+```bash
+cd /path/to/local/homer 
+mkdir -p exps/dense
+mkdir -p exps/waypoint
+cd exps/waypoint
+wget --no-check-certificate https://download.cs.stanford.edu/juno/homer/exps/waypoint/<task>_<action_space>.zst
+tar --use-compress-program=unzstd -xvf <task>_<action_space>.zst
+cd ../../dense 
+wget --no-check-certificate https://download.cs.stanford.edu/juno/homer/exps/dense/<task>_<action_space>_delta_allcams.zst
+tar --use-compress-program=unzstd -xvf <task>_<action_space>_delta_allcams.zst
+```
+
+Make sure that `homer/exps` now contains subfolders `waypoint` and `dense` with checkpoints per task.
 
 ### 2. Run evaluation
 

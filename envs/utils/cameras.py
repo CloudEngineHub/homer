@@ -9,7 +9,6 @@ from kortex_api.autogen.client_stubs.DeviceManagerClientRpc import DeviceManager
 from kortex_api.autogen.client_stubs.VisionConfigClientRpc import VisionConfigClient
 from kortex_api.autogen.messages import DeviceConfig_pb2, VisionConfig_pb2
 from envs.utils.kinova import DeviceConnection
-from constants import BASE_CAMERA_SERIAL
 import pyrealsense2 as rs
 import multiprocessing as mp
 
@@ -352,7 +351,6 @@ if __name__ == '__main__':
     from envs.utils.camera_utils import pcl_from_obs
     from common_utils import Stopwatch
     import cv2 as cv
-    #base_camera = LogitechCamera(BASE_CAMERA_SERIAL)
     base1_camera = RealSenseCamera("247122072471", use_depth=1)
     base2_camera = RealSenseCamera("247122073666", use_depth=1)
     wrist_camera = KinovaCamera()

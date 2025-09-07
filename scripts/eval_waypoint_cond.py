@@ -30,9 +30,8 @@ import pdb
 import sys
 import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "salient_auto"))
-from molmo_wrapper import MolmoWrapper
-molmo = MolmoWrapper(headless=False)
+from pointing_utils.gemini_wrapper import GeminiWrapper
+gemini = GeminiWrapper("YOUR API KEY")
 
 def eval_waypoint(
     policy: WaypointTransformer,
@@ -70,10 +69,6 @@ def eval_waypoint(
             break
 
         points, colors = pcl_from_obs(obs, env.cfg)
-
-        point_cloud = o3d.geometry.PointCloud()
-        point_cloud.points = o3d.utility.Vector3dVector(points)
-        point_cloud.colors = o3d.utility.Vector3dVector(colors)
         proprio = obs["proprio"]
 
         if target_xyz is None:
@@ -85,16 +80,11 @@ def eval_waypoint(
 
             # Save image
             image = Image.fromarray(rgb_image)
-            os.makedirs("salient_auto", exist_ok=True)  # ensure directory exists
-            image_path = "salient_auto/image.jpg"
-            image.save(image_path)
-            coords = molmo.point_to_object("salient_auto/image.jpg", prompt=item)
-            # pdb.set_trace()
+            coords = gemini.point_to_object(image, prompt=item)
             print("COORDS: ", coords)
             # Parse 2D coordinates
-            h, w = rgb_image.shape[:2]
-            x_px = int(float(coords["cx"].strip('%')) / 100 * w)
-            y_px = int(float(coords["cy"].strip('%')) / 100 * h)
+            x_px = int(coords["cx"])
+            y_px = int(coords["cy"])
 
             # Get depth at that point
             depth = depth_image[y_px, x_px]
@@ -112,7 +102,7 @@ def eval_waypoint(
             pt_world = pt_world[:3]
             target_xyz = pt_world
         
-        visualize_salient = False
+        visualize_salient = True
         if visualize_salient:
             pcd = o3d.geometry.PointCloud()
             points, colors = pcl_from_obs(obs, env.cfg)
@@ -290,4 +280,3 @@ if __name__ == "__main__":
     ## NOTE: For headless eval
     # xvfb-run -s "-screen 0 1920x1080x24" python scripts/eval_waypoint.py ... --headless
     main()
-    molmo.kill_molmo()
